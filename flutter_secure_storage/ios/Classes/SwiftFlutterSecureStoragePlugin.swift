@@ -64,7 +64,7 @@ public class SwiftFlutterSecureStoragePlugin: NSObject, FlutterPlugin {
             return
         }
         
-        let response = flutterSecureStorageManager.write(key: values.key!, value: values.value!, groupId: values.groupId, accountName: values.accountName, synchronizable: values.synchronizable, accessibility: values.accessibility)
+        let response = flutterSecureStorageManager.write(key: values.key!, value: values.value!, groupId: values.groupId, accountName: values.accountName, synchronizable: values.synchronizable, accessibility: values.accessibility, useAccessControl: values.useAccessControl)
         
         result(response)
     }
@@ -115,9 +115,11 @@ public class SwiftFlutterSecureStoragePlugin: NSObject, FlutterPlugin {
         let accountName = options["accountName"] as? String
         let groupId = options["groupId"] as? String
         let synchronizableString = options["synchronizable"] as? String
+        let useAccessControlString = options["useAccessControl"] as? String
         
         
         let synchronizable: Bool = synchronizableString != nil ? Bool(synchronizableString!)! : false
+        let useAccessControl: Bool = useAccessControlString != nil ? Bool(useAccessControlString!)! : false
         
         let key = arguments["key"] as? String
         let accessibility = options["accessibility"] as? String
@@ -127,6 +129,7 @@ public class SwiftFlutterSecureStoragePlugin: NSObject, FlutterPlugin {
             accountName: accountName,
             groupId: groupId,
             synchronizable: synchronizable,
+            useAccessControl: useAccessControl,
             accessibility: accessibility, key: key, value: value
         )
     }
@@ -135,6 +138,7 @@ public class SwiftFlutterSecureStoragePlugin: NSObject, FlutterPlugin {
         var accountName: String?
         var groupId: String?
         var synchronizable: Bool?
+        var useAccessControl: Bool
         var accessibility: String?
         var key: String?
         var value: String?

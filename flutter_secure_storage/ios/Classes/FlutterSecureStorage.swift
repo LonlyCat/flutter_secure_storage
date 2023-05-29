@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LocalAuthentication
 
 class FlutterSecureStorage{
     
@@ -13,7 +14,6 @@ class FlutterSecureStorage{
         var keychainQuery: [CFString: Any] = [kSecClass : kSecClassGenericPassword]
         if (key != nil) {
             keychainQuery[kSecAttrAccount] = key
-            
         }
         
         if (groupId != nil) {
@@ -96,7 +96,7 @@ class FlutterSecureStorage{
         return SecItemDelete(keychainQuery as CFDictionary)
     }
     
-    internal func write(key: String, value: String, groupId: String?, accountName: String?, synchronizable: Bool?, accessibility: String?) -> OSStatus {
+    internal func write(key: String, value: String, groupId: String?, accountName: String?, synchronizable: Bool?, accessibility: String?, useAccessControl: Bool) -> OSStatus {
         var attrAccessible: CFString = kSecAttrAccessibleWhenUnlocked
         if (accessibility != nil) {
             switch accessibility {
@@ -120,20 +120,37 @@ class FlutterSecureStorage{
             }
         }
         
+        var attrAccessControl: SecAccessControl?
+        if useAccessControl {
+            var error: Unmanaged<CFError>?
+            attrAccessControl = SecAccessControlCreateWithFlags(
+                nil, attrAccessible, .userPresence, &error)
+        }
+        
         let keyExists = containsKey(key: key, groupId: groupId, accountName: accountName, synchronizable: synchronizable)
         var keychainQuery = baseQuery(key: key, groupId: groupId, accountName: accountName, synchronizable: synchronizable, returnData: nil)
         if (keyExists) {
-            let update: [CFString: Any?] = [
+            var update: [CFString: Any?] = [
                 kSecValueData: value.data(using: String.Encoding.utf8),
-                kSecAttrAccessible: attrAccessible,
                 kSecAttrSynchronizable: synchronizable
             ]
+            if let attrAccessControl {
+                update[kSecAttrAccessControl] = attrAccessControl
+            }
+            else {
+                update[kSecAttrAccessible] = attrAccessible
+            }
             
             return SecItemUpdate(keychainQuery as CFDictionary, update as CFDictionary)
         } else {
+            keychainQuery[kSecUseAuthenticationContext] = context
             keychainQuery[kSecValueData] = value.data(using: String.Encoding.utf8)
-            keychainQuery[kSecAttrAccessible] = attrAccessible
-            
+            if let attrAccessControl {
+                keychainQuery[kSecAttrAccessControl] = attrAccessControl
+            }
+            else {
+                keychainQuery[kSecAttrAccessible] = attrAccessible
+            }
             return SecItemAdd(keychainQuery as CFDictionary, nil)
         }
     }

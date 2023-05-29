@@ -71,6 +71,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   IOSOptions _getIOSOptions() => IOSOptions(
         accountName: _getAccountName(),
+        useAccessControl: true,
       );
 
   AndroidOptions _getAndroidOptions() => const AndroidOptions(

@@ -6,11 +6,13 @@ class IOSOptions extends AppleOptions {
     String? groupId,
     String? accountName = AppleOptions.defaultAccountName,
     KeychainAccessibility accessibility = KeychainAccessibility.unlocked,
+    bool useAccessControl = false,
     bool synchronizable = false,
   }) : super(
           groupId: groupId,
           accountName: accountName,
           accessibility: accessibility,
+          useAccessControl: useAccessControl,
           synchronizable: synchronizable,
         );
 
@@ -20,6 +22,7 @@ class IOSOptions extends AppleOptions {
     String? groupId,
     String? accountName,
     KeychainAccessibility? accessibility,
+    bool? useAccessControl,
     bool? synchronizable,
   }) =>
       IOSOptions(
@@ -27,5 +30,6 @@ class IOSOptions extends AppleOptions {
         accountName: accountName ?? _accountName,
         accessibility: accessibility ?? _accessibility,
         synchronizable: synchronizable ?? _synchronizable,
+        useAccessControl: useAccessControl ?? _useAccessControl,
       );
 }
