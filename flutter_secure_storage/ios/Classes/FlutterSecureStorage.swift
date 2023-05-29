@@ -56,7 +56,7 @@ class FlutterSecureStorage{
         
         var results: [String: String] = [:]
         
-        if (status == noErr) {
+        if (status == errSecSuccess) {
             (ref as! NSArray).forEach { item in
                 let key: String = (item as! NSDictionary)[kSecAttrAccount] as! String
                 let value: String = String(data: (item as! NSDictionary)[kSecValueData] as! Data, encoding: .utf8) ?? ""
@@ -78,7 +78,7 @@ class FlutterSecureStorage{
         
         var value: String? = nil
         
-        if (status == noErr) {
+        if (status == errSecSuccess) {
             value = String(data: ref as! Data, encoding: .utf8)
         }
         return FlutterSecureStorageResponse(status: status, value: value)
@@ -143,7 +143,6 @@ class FlutterSecureStorage{
             
             return SecItemUpdate(keychainQuery as CFDictionary, update as CFDictionary)
         } else {
-            keychainQuery[kSecUseAuthenticationContext] = context
             keychainQuery[kSecValueData] = value.data(using: String.Encoding.utf8)
             if let attrAccessControl {
                 keychainQuery[kSecAttrAccessControl] = attrAccessControl
