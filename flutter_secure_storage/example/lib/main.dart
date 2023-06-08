@@ -17,7 +17,7 @@ class ItemsWidget extends StatefulWidget {
   ItemsWidgetState createState() => ItemsWidgetState();
 }
 
-enum _Actions { deleteAll }
+enum _Actions { deleteAll, readAll, readAllSkipAuth }
 
 enum _ItemActions { delete, edit, containsKey, read }
 
@@ -36,9 +36,11 @@ class ItemsWidgetState extends State<ItemsWidget> {
     _readAll();
   }
 
-  Future<void> _readAll() async {
+  Future<void> _readAll({ bool skipAuth = true }) async {
     final all = await _storage.readAll(
-      iOptions: _getIOSOptions(),
+      iOptions: _getIOSOptions().copyWith(
+        skipAuthenticationItem: skipAuth,
+      ),
       aOptions: _getAndroidOptions(),
     );
     setState(() {
@@ -58,12 +60,18 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   Future<void> _addNewItem() async {
     final String key = _randomValue();
-    final String value = _randomValue();
+    final result = await showDialog<_SecItemAddInfo>(
+      context: context,
+      builder: (context) => _AddItemWidget(itemKey: key),
+    );
 
-    await _storage.write(
-      key: key,
-      value: value,
-      iOptions: _getIOSOptions(),
+    if (result == null) return;
+     await _storage.write(
+      key: result.key,
+      value: result.value,
+      iOptions: _getIOSOptions().copyWith(
+        useAccessControl: result.useProtection,
+      ),
       aOptions: _getAndroidOptions(),
     );
     _readAll();
@@ -71,7 +79,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   IOSOptions _getIOSOptions() => IOSOptions(
         accountName: _getAccountName(),
-        useAccessControl: true,
       );
 
   AndroidOptions _getAndroidOptions() => const AndroidOptions(
@@ -100,6 +107,12 @@ class ItemsWidgetState extends State<ItemsWidget> {
                   case _Actions.deleteAll:
                     _deleteAll();
                     break;
+                  case _Actions.readAll:
+                    _readAll(skipAuth: false);
+                    break;
+                  case _Actions.readAllSkipAuth:
+                    _readAll();
+                    break;
                 }
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<_Actions>>[
@@ -107,6 +120,16 @@ class ItemsWidgetState extends State<ItemsWidget> {
                   key: Key('delete_all'),
                   value: _Actions.deleteAll,
                   child: Text('Delete all'),
+                ),
+                const PopupMenuItem(
+                  key: Key('read_all'),
+                  value: _Actions.readAll,
+                  child: Text('Read all'),
+                ),
+                const PopupMenuItem(
+                  key: Key('read_all_skip_auth'),
+                  value: _Actions.readAllSkipAuth,
+                  child: Text('Read all(skip auth)'),
                 ),
               ],
             )
@@ -258,15 +281,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
     );
     return controller.text;
   }
-
-  String _randomValue() {
-    final rand = Random();
-    final codeUnits = List.generate(20, (index) {
-      return rand.nextInt(26) + 65;
-    });
-
-    return String.fromCharCodes(codeUnits);
-  }
 }
 
 class _EditItemWidget extends StatelessWidget {
@@ -300,9 +314,102 @@ class _EditItemWidget extends StatelessWidget {
   }
 }
 
+class _AddItemWidget extends StatefulWidget {
+  _AddItemWidget({Key? key, String? itemKey})
+      : _controller = TextEditingController(text: itemKey),
+        super(key: key);
+
+  final TextEditingController _controller;
+
+  @override
+  State<_AddItemWidget> createState() => _AddItemWidgetState();
+}
+
+class _AddItemWidgetState extends State<_AddItemWidget> {
+  final ValueNotifier<bool> _protect = ValueNotifier<bool>(false);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add item'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            key: const Key('Security Key'),
+            controller: widget._controller,
+            autofocus: true,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _protect,
+                    builder: (context, value, child) {
+                      return Checkbox(
+                        value: value,
+                        onChanged: (newValue) {
+                          _protect.value = newValue ?? false;
+                        },
+                      );
+                    },
+                  ),
+                  const Text('Use Protect'),
+                ],
+              )
+            ],
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          key: const Key('cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          key: const Key('save'),
+          onPressed: () {
+            final item = _SecItemAddInfo(
+              key: widget._controller.text,
+              value: _randomValue(),
+              useProtection: _protect.value,
+            );
+            Navigator.of(context).pop(item);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 class _SecItem {
   _SecItem(this.key, this.value);
 
   final String key;
   final String value;
+}
+
+class _SecItemAddInfo {
+  _SecItemAddInfo({
+    required this.key,
+    required this.value,
+    this.useProtection = false,
+  });
+
+  final String key;
+  final String value;
+  final bool useProtection;
+}
+
+String _randomValue() {
+  final rand = Random();
+  final codeUnits = List.generate(20, (index) {
+    return rand.nextInt(26) + 65;
+  });
+
+  return String.fromCharCodes(codeUnits);
 }

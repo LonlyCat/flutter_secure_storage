@@ -230,6 +230,8 @@ public class FlutterSecureStorage {
                                 .Builder(MasterKey.DEFAULT_MASTER_KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                                .setUserAuthenticationValidityDurationSeconds(-1)
+                                .setUserAuthenticationRequired(true)
                                 .setKeySize(256).build())
                 .build();
         return EncryptedSharedPreferences.create(
